@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu CRM Programado</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+    body { background-color: #f4f5f7; padding: 20px; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    h1 { color: #172b4d; font-size: 24px; }
+    
+    /* Formulário de Novo Cliente */
+    .form-container { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .form-container input, .form-container select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; outline: none; }
+    .form-container button { background: #0052cc; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .form-container button:hover { background: #0065ff; }
+
+    /* Estutura do Kanban / Colunas */
+    .pipeline { display: flex; gap: 15px; overflow-x: auto; align-items: flex-start; }
+    .column { background: #ebecf0; border-radius: 8px; width: 280px; padding: 12px; flex-shrink: 0; min-height: 400px; }
+    .column-title { font-weight: bold; font-size: 14px; margin-bottom: 12px; color: #5e6c84; text-transform: uppercase; }
+    
+    /* Cartão do Cliente */
+    .card { background: white; padding: 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 10px; position: relative; }
+    .card-title { font-weight: bold; color: #172b4d; margin-bottom: 5px; }
+    .card-value { color: #36b37e; font-weight: bold; font-size: 14px; margin-bottom: 8px; }
+    .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .btn-move { background: #deebff; color: #0747a6; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .btn-delete { background: #ffebe6; color: #de350b; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>📊 Meu CRM Customizado</h1>
+  </header>
+
+  <div class="form-container">
+    <input type="text" id="clientName" placeholder="Nome do Cliente" required>
+    <input type="number" id="clientValue" placeholder="Valor (R$)" required>
+    <button onclick="addClient()">+ Adicionar Cliente</button>
+  </div>
+
+  <div class="pipeline">
+    <div class="column">
+      <div class="column-title">1. Contato Inicial</div>
+      <div id="col-1"></div>
+    </div>
+
+    <div class="column">
+      <div class="column-title">2. Proposta Enviada</div>
+      <div id="col-2"></div>
+    </div>
+
+    <div class="column">
+      <div class="column-title">3. Fechado</div>
+      <div id="col-3"></div>
+    </div>
+  </div>
+
+  <script>
+    // Carrega os dados salvos ou inicia com uma lista vazia
+    let clients = JSON.parse(localStorage.getItem('crm_clients')) || [
+      { id: 1, name: 'Exemplo Exemplo', value: 1500, status: 1 }
+    ];
+
+    function saveAndRender() {
+      localStorage.setItem('crm_clients', JSON.stringify(clients));
+      render();
+    }
+
+    function addClient() {
+      const nameInput = document.getElementById('clientName');
+      const valueInput = document.getElementById('clientValue');
+
+      if (!nameInput.value || !valueInput.value) {
+        alert('Preencha o nome e o valor!');
+        return;
+      }
+
+      const newClient = {
+        id: Date.now(),
+        name: nameInput.value,
+        value: parseFloat(valueInput.value),
+        status: 1 // Sempre entra na primeira coluna
+      };
+
+      clients.push(newClient);
+      nameInput.value = '';
+      valueInput.value = '';
+      saveAndRender();
+    }
+
+    function moveClient(id, nextStatus) {
+      clients = clients.map(client => {
+        if (client.id === id) {
+          return { ...client, status: nextStatus };
+        }
+        return client;
+      });
+      saveAndRender();
+    }
+
+    function deleteClient(id) {
+      clients = clients.filter(client => client.id !== id);
+      saveAndRender();
+    }
+
+    function render() {
+      // Limpa as colunas
+      document.getElementById('col-1').innerHTML = '';
+      document.getElementById('col-2').innerHTML = '';
+      document.getElementById('col-3').innerHTML = '';
+
+      // Renderiza cada cartão na coluna certa
+      clients.forEach(client => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-title">${client.name}</div>
+          <div class="card-value">R$ ${client.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+          <div class="actions">
+            ${client.status < 3 ? `<button class="btn-move" onclick="moveClient(${client.id}, ${client.status + 1})">Avançar ➔</button>` : '<span></span>'}
+            <button class="btn-delete" onclick="deleteClient(${client.id})">Excluir</button>
+          </div>
+        `;
+
+        document.getElementById(`col-${client.status}`).appendChild(card);
+      });
+    }
+
+    // Inicializa ao carregar a página
+    render();
+  </script>
+</body>
+</html>
